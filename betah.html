@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Flappy Visionary - Ultimate Edition</title>
+    <!-- Memuat Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" href="https://raw.githubusercontent.com/AliyulManan123/Module-revanced-gen/refs/heads/main/image-removebg-preview.png" type="image/png">
+    <!-- Memuat Tone.js untuk efek suara -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 2s linear;
+        }
+        /* --- TEMA BARU UNTUK SIANG & MALAM DI BODY --- */
+        body.night-theme {
+            background-color: #0a0a0a;
+        }
+        body.day-theme {
+            background-color: #4682B4; /* Warna biru langit lebih gelap untuk pinggiran */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            max-height: 700px;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            user-select: none;
+            -webkit-user-select: none;
+            transition: background 2s linear;
+        }
+        .container-night {
+            background: linear-gradient(to bottom, #1c1c24, #0d0d12);
+        }
+        .container-day {
+            background: linear-gradient(to bottom, #87CEEB, #4682B4);
+        }
+
+        .day-theme .ui-overlay {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .day-theme .ui-box {
+            background: rgba(240, 245, 255, 0.85);
+            border-color: #a0a0a0;
+        }
+        .day-theme .ui-box h1 {
+            color: #4a63c5;
+            text-shadow: none;
+        }
+        .day-theme .ui-box p {
+            color: #333;
+        }
+        .day-theme .watermark {
+            color: #aaa;
+        }
+        .day-theme .watermark:hover {
+            color: #4a63c5;
+        }
+        .day-theme #score-display {
+            color: #fff;
+            text-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: rgba(10, 10, 20, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 10;
+            transition: background 0.5s;
+        }
+        .hidden {
+            display: none;
+        }
+        .ui-box {
+            background: rgba(28, 28, 36, 0.8);
+            padding: 2rem;
+            border-radius: 1rem;
+            border: 1px solid #3c3c3d;
+            position: relative;
+            transition: background 0.5s, border-color 0.5s;
+        }
+        .ui-box h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #8a9ef2;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 10px rgba(98, 126, 234, 0.5);
+            transition: color 0.5s;
+        }
+        .ui-box p {
+            margin-bottom: 1.5rem;
+            color: #a0a0a0;
+            transition: color 0.5s;
+        }
+        .highscore-text {
+            font-weight: bold;
+            color: #f59e0b;
+        }
+        .button {
+            background-color: #627eea;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid #4a63c5;
+        }
+        .button:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        .button:active {
+            transform: scale(0.98);
+            border-bottom-width: 1px;
+        }
+        #score-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 3rem;
+            font-weight: 900;
+            z-index: 5;
+            text-shadow: 0 0 15px rgba(98, 126, 234, 0.5), 0 0 5px rgba(0,0,0,0.5);
+            transition: color 2s linear;
+        }
+        @keyframes float-text {
+            to {
+                transform: translateY(-80px);
+                opacity: 0;
+            }
+        }
+        .floating-text {
+            position: absolute;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #f59e0b;
+            animation: float-text 2s ease-out forwards;
+            pointer-events: none;
+            text-shadow: 0 0 5px black;
+        }
+        .watermark {
+            position: absolute;
+            bottom: -25px;
+            right: 10px;
+            font-size: 0.7rem;
+            color: #555;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .watermark:hover {
+            color: #8a9ef2;
+        }
+        #easter-egg-image {
+            max-width: 90%;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        #mute-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(28, 28, 36, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 11;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #mute-button svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="score-display">0</div>
+        <div id="mute-button">
+            <svg id="speaker-on-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"></path></svg>
+            <svg id="speaker-off-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"></path></svg>
+        </div>
+        
+        <div id="start-screen" class="ui-overlay">
+            <div class="ui-box">
+                <h1>Flappy Visionary</h1>
+                <p>Tap to flap. Don't hit the pipes.<br>Get the code.</p>
+                <p class="highscore-text">High Score: <span id="start-highscore">0</span></p>
+                <div id="start-button" class="button">START</div>
+                <a href="https://x.com/Cihuyyy856990" target="_blank" class="watermark">by @Cihuyyy856990</a>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="ui-overlay hidden">
+            <div class="ui-box">
+                <div id="normal-gameover">
+                    <h1>Game Over</h1>
+                    <p>Final Score: <span id="final-score">0</span><br>Still no code...</p>
+                </div>
+                <div id="easter-egg-gameover" class="hidden">
+                     <img id="easter-egg-image" src="https://raw.githubusercontent.com/AliyulManan123/flappyvisionary/refs/heads/main/image.png" alt="Claim Spot">
+                     <p>You found a secret! Are you the chosen one?</p>
+                </div>
+                <p class="highscore-text">High Score: <span id="gameover-highscore">0</span></p>
+                <div id="restart-button" class="button">TRY AGAIN</div>
+                <a href="https://x.com/Cihuyyy856990" target="_blank" class="watermark">by @Cihuyyy856990</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const gameContainer = document.getElementById('game-container');
+            const body = document.body;
+
+            // UI Elements
+            const scoreDisplay = document.getElementById('score-display');
+            const startScreen = document.getElementById('start-screen');
+            const gameOverScreen = document.getElementById('game-over-screen');
+            const startButton = document.getElementById('start-button');
+            const restartButton = document.getElementById('restart-button');
+            const finalScoreEl = document.getElementById('final-score');
+            const startHighScoreEl = document.getElementById('start-highscore');
+            const gameOverHighScoreEl = document.getElementById('gameover-highscore');
+            const normalGameOverEl = document.getElementById('normal-gameover');
+            const easterEggGameOverEl = document.getElementById('easter-egg-gameover');
+            const muteButton = document.getElementById('mute-button');
+            const speakerOnIcon = document.getElementById('speaker-on-icon');
+            const speakerOffIcon = document.getElementById('speaker-off-icon');
+
+            let canvasWidth, canvasHeight;
+
+            // Game variables
+            let bird, pipes, score, highScore, gameState, dayNightCycle;
+            const memeTexts = ['wen code?', 'gib code pls', 'DM me code', 'code is fud', 'need alpha (code)', 'ser, the code?'];
+            let floatingTexts = [];
+            const highScoreKey = 'flappyVisionaryHighScore';
+            const EASTER_EGG_SCORE = 15;
+            const GOLDEN_PIPE_SCORE = 42;
+            let goldenPipesActive = false;
+
+            // Game constants
+            const GRAVITY = 0.4;
+            const FLAP_STRENGTH = -7;
+            const PIPE_SPEED = -3;
+            const PIPE_WIDTH = 70;
+            const PIPE_GAP = 180;
+            const PIPE_SPAWN_RATE = 100;
+            let pipeSpawnTimer = PIPE_SPAWN_RATE;
+
+            // Bird asset
+            const birdImg = new Image();
+            birdImg.src = 'https://raw.githubusercontent.com/AliyulManan123/Module-revanced-gen/refs/heads/main/image-removebg-preview.png';
+            
+            // Sound Engine
+            let soundEnabled = true;
+            const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+            const playSound = (note, duration = '16n') => {
+                if(soundEnabled) Tone.loaded().then(() => synth.triggerAttackRelease(note, duration));
+            }
+
+            function resizeCanvas() {
+                canvasWidth = gameContainer.clientWidth;
+                canvasHeight = gameContainer.clientHeight;
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+            }
+
+            class Bird {
+                constructor() {
+                    this.x = canvasWidth / 4;
+                    this.y = canvasHeight / 2;
+                    // Hitbox disesuaikan agar lebih adil
+                    this.width = 55; 
+                    this.height = 40;
+                    this.velocityY = 0;
+                }
+                flap() {
+                    this.velocityY = FLAP_STRENGTH;
+                    playSound('C5');
+                }
+                update() {
+                    this.velocityY += GRAVITY;
+                    this.y += this.velocityY;
+                    if (this.y < 0) { this.y = 0; this.velocityY = 0; }
+                }
+                draw() {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.rotate(Math.min(Math.max(this.velocityY / 20, -0.5), 0.5));
+                    ctx.drawImage(birdImg, -this.width / 2, -this.height / 2, this.width, this.height);
+                    ctx.restore();
+                }
+            }
+
+            class Pipe {
+                constructor() {
+                    this.x = canvasWidth;
+                    this.width = PIPE_WIDTH;
+                    this.gapY = Math.random() * (canvasHeight - PIPE_GAP - 120) + 60;
+                    this.passed = false;
+                    this.isGolden = goldenPipesActive;
+                }
+                update() { this.x += PIPE_SPEED; }
+                draw() {
+                    let gradient;
+                    if (this.isGolden) {
+                        gradient = ctx.createLinearGradient(this.x, 0, this.x + this.width, 0);
+                        gradient.addColorStop(0, '#fde047');
+                        gradient.addColorStop(1, '#f59e0b');
+                    } else if (dayNightCycle.isDay) {
+                        gradient = ctx.createLinearGradient(this.x, 0, this.x + this.width, 0);
+                        gradient.addColorStop(0, '#6EE7B7');
+                        gradient.addColorStop(1, '#34D399');
+                    } else {
+                        gradient = ctx.createLinearGradient(this.x, 0, this.x + this.width, 0);
+                        gradient.addColorStop(0, '#8a9ef2');
+                        gradient.addColorStop(1, '#627eea');
+                    }
+                    ctx.fillStyle = gradient;
+                    ctx.strokeStyle = dayNightCycle.isDay ? '#2F855A' : '#2c2c34';
+                    ctx.lineWidth = 4;
+                    ctx.fillRect(this.x, 0, this.width, this.gapY);
+                    ctx.strokeRect(this.x, 0, this.width, this.gapY);
+                    ctx.fillRect(this.x, this.gapY + PIPE_GAP, this.width, canvasHeight - this.gapY - PIPE_GAP);
+                    ctx.strokeRect(this.x, this.gapY + PIPE_GAP, this.width, canvasHeight - this.gapY - PIPE_GAP);
+                }
+            }
+
+            class DayNightCycle {
+                constructor() {
+                    this.isDay = true;
+                    this.lastTriggerScore = -1;
+                }
+                update() {
+                    // Logika anti-drama: hanya trigger sekali per 10 skor
+                    if (score > 0 && score % 10 === 0 && score !== this.lastTriggerScore) {
+                        this.isDay = !this.isDay;
+                        this.lastTriggerScore = score;
+                    }
+                    // Terapkan tema ke body dan container
+                    body.classList.toggle('day-theme', this.isDay);
+                    body.classList.toggle('night-theme', !this.isDay);
+                    gameContainer.classList.toggle('container-day', this.isDay);
+                    gameContainer.classList.toggle('container-night', !this.isDay);
+                }
+                draw() {
+                    const progress = (Date.now() % 60000) / 60000;
+                    const angle = progress * Math.PI - (Math.PI / 2);
+                    const radius = canvasWidth / 2 + 30;
+                    
+                    const celestialX = canvasWidth / 2 - radius * Math.cos(angle);
+                    const celestialY = (canvasHeight / 2) - radius * Math.sin(angle); // Orbit lebih tinggi
+
+                    if (celestialY < canvasHeight - 100) { // Hanya gambar jika di atas cakrawala
+                        if (this.isDay) {
+                            ctx.fillStyle = 'rgba(253, 224, 71, 0.9)';
+                            ctx.beginPath();
+                            ctx.arc(celestialX, celestialY, 30, 0, 2 * Math.PI);
+                            ctx.fill();
+                        } else {
+                            ctx.fillStyle = 'rgba(226, 232, 240, 0.9)';
+                            ctx.beginPath();
+                            ctx.arc(celestialX, celestialY, 25, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+                }
+            }
+            
+            function spawnPipe() {
+                if (pipeSpawnTimer <= 0) { pipes.push(new Pipe()); pipeSpawnTimer = PIPE_SPAWN_RATE; }
+                pipeSpawnTimer--;
+            }
+
+            function checkCollisions() {
+                if (bird.y + bird.height / 2 > canvasHeight) return true;
+                for (let pipe of pipes) {
+                    if (bird.x + bird.width / 2 > pipe.x && bird.x - bird.width / 2 < pipe.x + pipe.width) {
+                        if (bird.y - bird.height / 2 < pipe.gapY || bird.y + bird.height / 2 > pipe.gapY + PIPE_GAP) return true;
+                    }
+                }
+                return false;
+            }
+
+            function updateScore() {
+                for (let pipe of pipes) {
+                    if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                        pipe.passed = true;
+                        score++;
+                        playSound('E6');
+                        scoreDisplay.textContent = score;
+                        if (score === GOLDEN_PIPE_SCORE) {
+                            goldenPipesActive = true;
+                            playSound('C7', '4n');
+                        }
+                        const text = memeTexts[Math.floor(Math.random() * memeTexts.length)];
+                        floatingTexts.push({ text, x: bird.x, y: bird.y, life: 120 });
+                    }
+                }
+            }
+
+            function drawFloatingTexts() {
+                floatingTexts.forEach((ft, index) => {
+                    ctx.font = 'bold 20px Poppins';
+                    ctx.fillStyle = `rgba(245, 158, 11, ${ft.life / 120})`;
+                    ctx.fillText(ft.text, ft.x, ft.y - (120 - ft.life));
+                    ft.life--;
+                    if (ft.life <= 0) floatingTexts.splice(index, 1);
+                });
+            }
+
+            function gameLoop() {
+                if (gameState !== 'playing') return;
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                dayNightCycle.update();
+                dayNightCycle.draw();
+                bird.update();
+                bird.draw();
+                pipes.forEach(p => { p.update(); p.draw(); });
+                spawnPipe();
+                updateScore();
+                drawFloatingTexts();
+                pipes = pipes.filter(p => p.x + p.width > 0);
+                if (checkCollisions()) {
+                    playSound('C3', '8n');
+                    setGameState('gameOver');
+                } else {
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+
+            function setGameState(newState) {
+                gameState = newState;
+                if (newState === 'ready') {
+                    startHighScoreEl.textContent = highScore;
+                    startScreen.classList.remove('hidden');
+                    gameOverScreen.classList.add('hidden');
+                    scoreDisplay.textContent = '0';
+                    dayNightCycle.update(); // Set tema awal
+                } else if (newState === 'playing') {
+                    startScreen.classList.add('hidden');
+                    gameOverScreen.classList.add('hidden');
+                    gameLoop();
+                } else if (newState === 'gameOver') {
+                    if (score > highScore) {
+                        highScore = score;
+                        localStorage.setItem(highScoreKey, highScore);
+                    }
+                    finalScoreEl.textContent = score;
+                    gameOverHighScoreEl.textContent = highScore;
+                    if (score >= EASTER_EGG_SCORE) {
+                        normalGameOverEl.classList.add('hidden');
+                        easterEggGameOverEl.classList.remove('hidden');
+                    } else {
+                        normalGameOverEl.classList.remove('hidden');
+                        easterEggGameOverEl.classList.add('hidden');
+                    }
+                    gameOverScreen.classList.remove('hidden');
+                }
+            }
+            
+            function init() {
+                highScore = parseInt(localStorage.getItem(highScoreKey)) || 0;
+                resizeCanvas();
+                bird = new Bird();
+                pipes = [];
+                score = 0;
+                floatingTexts = [];
+                pipeSpawnTimer = PIPE_SPAWN_RATE;
+                dayNightCycle = new DayNightCycle();
+                goldenPipesActive = false;
+                setGameState('ready');
+            }
+
+            function handleInput() {
+                if (gameState === 'playing') bird.flap();
+            }
+
+            // Event Listeners
+            window.addEventListener('resize', init);
+            
+            const startGame = (e) => { e.preventDefault(); Tone.start(); init(); setGameState('playing'); };
+            startButton.addEventListener('click', startGame);
+            startButton.addEventListener('touchstart', startGame);
+
+            const restartGame = (e) => { e.preventDefault(); init(); setGameState('playing'); };
+            restartButton.addEventListener('click', restartGame);
+            restartButton.addEventListener('touchstart', restartGame);
+            
+            gameContainer.addEventListener('mousedown', handleInput);
+            gameContainer.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(); });
+            window.addEventListener('keydown', (e) => { if (e.code === 'Space') handleInput(); });
+
+            muteButton.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                speakerOnIcon.classList.toggle('hidden', !soundEnabled);
+                speakerOffIcon.classList.toggle('hidden', soundEnabled);
+            });
+
+            // Initial setup
+            init();
+        });
+    </script>
+
+</body>
+</html>
